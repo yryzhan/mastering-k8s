@@ -7,10 +7,12 @@ This guide explains each command and step needed to manually build a Kubernetes 
 sudo mkdir -p ./kubebuilder/bin
 sudo mkdir -p /etc/cni/net.d
 sudo mkdir -p /var/lib/kubelet
+sudo mkdir -p /var/lib/kubelet/pki
 sudo mkdir -p /etc/kubernetes/manifests
 sudo mkdir -p /var/log/kubernetes
 sudo mkdir -p /etc/containerd/
 sudo mkdir -p /run/containerd
+sudo mkdir -p /opt/cni
 ```
 
 ## 2. Download Core Components
@@ -266,14 +268,17 @@ sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kube-controller-manager \
 # Check node status
 sudo kubebuilder/bin/kubectl get nodes
 
-# Check all resources
-sudo kubebuilder/bin/kubectl get all -A
-
 # Check component status
 sudo kubebuilder/bin/kubectl get componentstatuses
 
 # Check API server health
 sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose'
+
+# Create Deployment 
+sudo  kubebuilder/bin/kubectl create deploy demo --image nginx
+
+# Check all resources
+sudo kubebuilder/bin/kubectl get all -A
 ```
 
 ## Notes:
