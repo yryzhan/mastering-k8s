@@ -70,7 +70,7 @@ openssl genrsa -out /tmp/sa.key 2048
 openssl rsa -in /tmp/sa.key -pubout -out /tmp/sa.pub
 
 # Generate token file
-TOKEN="1234567890"
+export TOKEN="1234567890"
 echo "${TOKEN},admin,admin,system:masters" > /tmp/token.csv
 
 # Generate CA certificate
@@ -175,7 +175,7 @@ staticPodPath: "/etc/kubernetes/manifests"
 Get the host IP:
 
 ```bash
-HOST_IP=$(hostname -I | awk '{print $1}')
+export HOST_IP=$(hostname -I | awk '{print $1}')
 ```
 
 ### Start etcd
@@ -265,7 +265,7 @@ sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
 ### Label the node
 
 ```bash
-NODE_NAME=$(hostname)
+export NODE_NAME=$(hostname)
 sudo kubebuilder/bin/kubectl label node "$NODE_NAME" node-role.kubernetes.io/master="" --overwrite
 ```
 
@@ -296,11 +296,62 @@ sudo kubebuilder/bin/kubectl get componentstatuses
 # Check API server health
 sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose'
 
+# Remove node taint to allow pod scheduling
+sudo kubebuilder/bin/kubectl taint nodes $(hostname) node.cloudprovider.kubernetes.io/uninitialized:NoSchedule-
+
 # Create Deployment 
-sudo  kubebuilder/bin/kubectl create deploy demo --image nginx
+sudo kubebuilder/bin/kubectl create deploy demo --image nginx
 
 # Check all resources
 sudo kubebuilder/bin/kubectl get all -A
+```
+
+## Troubleshooting
+
+### Pod Stuck in Pending State
+
+If pods are stuck in `Pending` state, check for node taints:
+
+```bash
+# Check node taints
+sudo kubebuilder/bin/kubectl describe nodes
+
+# Remove common taints that prevent scheduling
+sudo kubebuilder/bin/kubectl taint nodes $(hostname) node.cloudprovider.kubernetes.io/uninitialized:NoSchedule-
+```
+
+### Container Runtime Issues
+
+If containers fail to start, check containerd status:
+
+```bash
+# Check containerd logs
+sudo journalctl -u containerd
+
+# Restart containerd if needed
+sudo pkill containerd
+sudo PATH=$PATH:/opt/cni/bin:/usr/sbin /opt/cni/bin/containerd -c /etc/containerd/config.toml &
+```
+
+### Kubelet Issues
+
+If kubelet stops working, restart it:
+
+```bash
+# Restart kubelet
+sudo pkill kubelet
+sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
+    --kubeconfig=/var/lib/kubelet/kubeconfig \
+    --config=/var/lib/kubelet/config.yaml \
+    --root-dir=/var/lib/kubelet \
+    --cert-dir=/var/lib/kubelet/pki \
+    --hostname-override=$(hostname) \
+    --pod-infra-container-image=registry.k8s.io/pause:3.10 \
+    --node-ip=$HOST_IP \
+    --cloud-provider=external \
+    --cgroup-driver=cgroupfs \
+    --max-pods=4 \
+    --v=1 &
 ```
 
 ## Notes

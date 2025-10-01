@@ -97,7 +97,7 @@ setup_configs() {
     fi
 
     if [ ! -f "/tmp/token.csv" ]; then
-        TOKEN="1234567890"
+        export TOKEN="1234567890"
         echo "${TOKEN},admin,admin,system:masters" > /tmp/token.csv
     fi
 
@@ -224,7 +224,7 @@ start() {
         return 0
     fi
 
-    HOST_IP=$(hostname -I | awk '{print $1}')
+    export HOST_IP=$(hostname -I | awk '{print $1}')
     
     # Download components if needed
     download_components
@@ -313,7 +313,7 @@ start() {
     fi
 
     # Label the node so static pods with nodeSelector can be scheduled
-    NODE_NAME=$(hostname)
+    export NODE_NAME=$(hostname)
     sudo kubebuilder/bin/kubectl label node "$NODE_NAME" node-role.kubernetes.io/master="" --overwrite || true
 
     if ! is_running "kube-controller-manager"; then
