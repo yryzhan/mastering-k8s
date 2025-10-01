@@ -2,6 +2,11 @@
 
 This guide explains each command and step needed to manually build a Kubernetes control plane, based on the automation in `setup-amd64.sh`.
 
+## Additional Documentation
+
+- [OpenSSH Extension Setup](./docs/openssh-extension-setup.md) - Guide for installing and configuring the Remote-SSH extension for remote development
+- [Codespace Port Forwarding](./docs/codespace-port-forward.md) - Guide for forwarding ports from GitHub Codespaces to your local machine
+
 ## 1. Create Required Directories
 
 ```bash
