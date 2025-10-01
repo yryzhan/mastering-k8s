@@ -1,0 +1,94 @@
+---
+description: Automatic Markdown linting and formatting rules
+globs: ["**/*.md", "**/*.mdc"]
+alwaysApply: true
+---
+
+# Markdown Linting and Formatting Rules
+
+You are a Markdown linting and formatting expert. When working with any Markdown files (*.md), you must automatically detect and fix all linting errors to ensure consistent, high-quality documentation.
+
+## MANDATORY Automatic Linting Fixes
+
+When you encounter, create, edit, or are asked to work with ANY Markdown files, you MUST:
+
+1. **ALWAYS check for linting errors IMMEDIATELY** using the `read_lints` tool
+2. **AUTOMATICALLY fix ALL detected linting errors** without being explicitly asked
+3. **NEVER leave any MD linting errors unfixed** - this is non-negotiable
+4. **Verify fixes** by re-running linting after making changes
+5. **Apply this rule to ALL .md files** - documentation, README files, any markdown content
+
+## Zero Tolerance Policy
+
+- **NO EXCEPTIONS**: Every MD linting error must be fixed
+- **IMMEDIATE ACTION**: Fix linting errors as soon as they are detected
+- **PROACTIVE APPROACH**: Check for linting errors even when not explicitly requested
+- **COMPREHENSIVE FIXES**: Address all error types, not just obvious ones
+
+## Common Markdown Linting Rules to Fix
+
+### Structure and Headers
+
+- **MD041**: Ensure first line is a top-level heading (`# Title`)
+- **MD001**: Fix heading level increments (h1 → h2 → h3, no skipping)
+- **MD022**: Ensure headers are surrounded by blank lines
+- **MD025**: Ensure only one top-level heading per document
+
+### Lists and Spacing
+
+- **MD030**: Fix list marker spacing (use single space after `-` or `*`)
+- **MD007**: Fix unordered list indentation (use 0 or 2 spaces consistently)
+- **MD032**: Ensure lists are surrounded by blank lines
+- **MD012**: Remove multiple consecutive blank lines
+
+### Content and Formatting
+
+- **MD009**: Remove trailing spaces
+- **MD010**: Replace tabs with spaces
+- **MD033**: Remove or escape inline HTML elements
+- **MD034**: Fix bare URLs (wrap in `<>` or convert to proper links)
+- **MD047**: Ensure file ends with single newline character
+
+### Links and References
+
+- **MD039**: Fix spaces in link text
+- **MD051**: Fix link fragments
+- **MD052**: Fix reference link/image references
+
+## Implementation Process
+
+1. **Detection**: Use `read_lints` tool on any Markdown file you work with
+2. **Systematic Fixing**: Address errors by category (structure → lists → content → links)
+3. **Batch Operations**: Use `MultiEdit` tool for multiple fixes in the same file
+4. **Verification**: Re-run `read_lints` to confirm all issues are resolved
+5. **Completion**: Ensure final file has proper formatting and no linting errors
+
+## Key Principles
+
+- **ALWAYS PROACTIVE**: Fix linting errors automatically, every single time
+- **ZERO TOLERANCE**: Never leave any MD linting errors unfixed
+- **COMPREHENSIVE**: Address all categories of linting errors without exception
+- **IMMEDIATE**: Fix errors as soon as they are detected
+- **EFFICIENT**: Use batch operations when possible to fix multiple issues
+- **CONSISTENT**: Apply the same strict standards across ALL Markdown files
+- **VERIFIED**: Always confirm fixes with final linting check
+- **UNIVERSAL**: Apply to all .md files regardless of their purpose or location
+
+## Tools to Use
+
+- `read_lints` - Check for linting errors
+- `MultiEdit` - Apply multiple fixes efficiently
+- `search_replace` - Fix individual issues
+- `write` - Rewrite file when extensive changes needed
+
+## CRITICAL REMINDER
+
+**ALWAYS fix MD linting errors - NO EXCEPTIONS!**
+
+- Every time you work with a Markdown file, check for linting errors
+- Fix ALL errors immediately and automatically  
+- Never leave any MD linting errors unfixed
+- This applies to ALL .md files: documentation, README files, any markdown content
+- The goal is to maintain perfect, high-quality, consistent Markdown documentation across the entire codebase
+
+**This is a mandatory requirement, not an optional suggestion.**

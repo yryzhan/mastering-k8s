@@ -3,6 +3,7 @@
 This guide explains each command and step needed to manually build a Kubernetes control plane, based on the automation in `setup-amd64.sh`.
 
 ## 1. Create Required Directories
+
 ```bash
 sudo mkdir -p ./kubebuilder/bin
 sudo mkdir -p /etc/cni/net.d
@@ -16,6 +17,7 @@ sudo mkdir -p /opt/cni
 ```
 
 ## 2. Download Core Components
+
 ```bash
 # Download kubebuilder tools (includes etcd, kubectl, etc)
 curl -L https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-1.30.0-linux-amd64.tar.gz -o /tmp/kubebuilder-tools.tar.gz
@@ -29,6 +31,7 @@ sudo chmod 755 kubebuilder/bin/kubelet
 ```
 
 ## 3. Install Container Runtime
+
 ```bash
 # Download and install containerd
 wget https://github.com/containerd/containerd/releases/download/v2.0.5/containerd-static-2.0.5-linux-amd64.tar.gz -O /tmp/containerd.tar.gz
@@ -46,6 +49,7 @@ rm /tmp/cni-plugins.tgz
 ```
 
 ## 4. Download Additional Components
+
 ```bash
 # Download controller manager and scheduler
 sudo curl -L "https://dl.k8s.io/v1.30.0/bin/linux/amd64/kube-controller-manager" -o kubebuilder/bin/kube-controller-manager
@@ -59,6 +63,7 @@ sudo chmod 755 kubebuilder/bin/cloud-controller-manager
 ```
 
 ## 5. Generate Certificates and Tokens
+
 ```bash
 # Generate service account key pair
 openssl genrsa -out /tmp/sa.key 2048
@@ -76,6 +81,7 @@ sudo cp /tmp/ca.crt /var/lib/kubelet/pki/ca.crt
 ```
 
 ## 6. Configure kubectl
+
 ```bash
 sudo kubebuilder/bin/kubectl config set-credentials test-user --token=1234567890
 sudo kubebuilder/bin/kubectl config set-cluster test-env --server=https://127.0.0.1:6443 --insecure-skip-tls-verify
@@ -84,7 +90,9 @@ sudo kubebuilder/bin/kubectl config use-context test-context
 ```
 
 ## 7. Configure CNI
+
 Create `/etc/cni/net.d/10-mynet.conf`:
+
 ```json
 {
     "cniVersion": "0.3.1",
@@ -104,7 +112,9 @@ Create `/etc/cni/net.d/10-mynet.conf`:
 ```
 
 ## 8. Configure containerd
+
 Create `/etc/containerd/config.toml`:
+
 ```toml
 version = 3
 
@@ -133,7 +143,9 @@ version = 3
 ```
 
 ## 9. Configure kubelet
+
 Create `/var/lib/kubelet/config.yaml`:
+
 ```yaml
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
@@ -161,11 +173,13 @@ staticPodPath: "/etc/kubernetes/manifests"
 ## 10. Start Components
 
 Get the host IP:
+
 ```bash
 HOST_IP=$(hostname -I | awk '{print $1}')
 ```
 
-### Start etcd:
+### Start etcd
+
 ```bash
 sudo kubebuilder/bin/etcd \
     --advertise-client-urls http://$HOST_IP:2379 \
@@ -178,7 +192,8 @@ sudo kubebuilder/bin/etcd \
     --initial-cluster-token test-token &
 ```
 
-### Start kube-apiserver:
+### Start kube-apiserver
+
 ```bash
 sudo kubebuilder/bin/kube-apiserver \
     --etcd-servers=http://$HOST_IP:2379 \
@@ -200,13 +215,15 @@ sudo kubebuilder/bin/kube-apiserver \
     --service-account-signing-key-file=/tmp/sa.key &
 ```
 
-### Start containerd:
+### Start containerd
+
 ```bash
 export PATH=$PATH:/opt/cni/bin:kubebuilder/bin
 sudo PATH=$PATH:/opt/cni/bin:/usr/sbin /opt/cni/bin/containerd -c /etc/containerd/config.toml &
 ```
 
-### Start kube-scheduler:
+### Start kube-scheduler
+
 ```bash
 sudo kubebuilder/bin/kube-scheduler \
     --kubeconfig=/root/.kube/config \
@@ -215,7 +232,8 @@ sudo kubebuilder/bin/kube-scheduler \
     --bind-address=0.0.0.0 &
 ```
 
-### Prepare for kubelet:
+### Prepare for kubelet
+
 ```bash
 # Copy kubeconfig
 sudo cp /root/.kube/config /var/lib/kubelet/kubeconfig
@@ -227,7 +245,8 @@ sudo kubebuilder/bin/kubectl create sa default
 sudo kubebuilder/bin/kubectl create configmap kube-root-ca.crt --from-file=ca.crt=/tmp/ca.crt -n default
 ```
 
-### Start kubelet:
+### Start kubelet
+
 ```bash
 sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
     --kubeconfig=/var/lib/kubelet/kubeconfig \
@@ -243,13 +262,15 @@ sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
     --v=1 &
 ```
 
-### Label the node:
+### Label the node
+
 ```bash
 NODE_NAME=$(hostname)
 sudo kubebuilder/bin/kubectl label node "$NODE_NAME" node-role.kubernetes.io/master="" --overwrite
 ```
 
-### Start kube-controller-manager:
+### Start kube-controller-manager
+
 ```bash
 sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kube-controller-manager \
     --kubeconfig=/var/lib/kubelet/kubeconfig \
@@ -264,6 +285,7 @@ sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kube-controller-manager \
 ```
 
 ## 11. Verify Setup
+
 ```bash
 # Check node status
 sudo kubebuilder/bin/kubectl get nodes
@@ -281,14 +303,16 @@ sudo  kubebuilder/bin/kubectl create deploy demo --image nginx
 sudo kubebuilder/bin/kubectl get all -A
 ```
 
-## Notes:
+## Notes
+
 - Each component runs as a background process (&)
 - The setup uses self-signed certificates for simplicity
 - Default token is hardcoded for development only
 - Components use insecure connections locally
 - This setup is for learning/development only, not for production use
 
-## Order of Operations:
+## Order of Operations
+
 1. Create directories
 2. Download binaries
 3. Generate certificates/tokens
