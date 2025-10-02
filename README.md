@@ -8,6 +8,7 @@ A comprehensive hands-on guide to understanding Kubernetes internals by manually
   - [Lab 01: Control Plane with Static Pods](./labs/lab-01-control-plane-static-pods/) - Beginner level
   - [Lab 02: Profiling kube-apiserver](./labs/lab-02-profiling-apiserver/) - Advanced level
   - [Lab 03: Cloud Controller Manager](./labs/lab-03-cloud-controller-manager/) - Expert level
+- **[manifests/](./manifests/)** - Kubernetes manifest files for demo applications
 - **docs/** - Additional documentation and guides
 - **setup.sh** - Automated setup script (use after understanding manual steps)
 
@@ -324,8 +325,9 @@ sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kube-controller-manager \
 ## 11. Verify Setup
 
 ```bash
-# Check node status
+# Check node status and taints
 sudo kubebuilder/bin/kubectl get nodes
+sudo kubebuilder/bin/kubectl describe nodes $(hostname) | grep -A5 Taints
 
 # Check component status
 sudo kubebuilder/bin/kubectl get componentstatuses
@@ -333,11 +335,8 @@ sudo kubebuilder/bin/kubectl get componentstatuses
 # Check API server health
 sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose'
 
-# Remove node taint to allow pod scheduling
-sudo kubebuilder/bin/kubectl taint nodes $(hostname) node.cloudprovider.kubernetes.io/uninitialized:NoSchedule-
-
-# Create Deployment 
-sudo kubebuilder/bin/kubectl create deploy demo --image nginx
+# Create nginx deployment with toleration and node selector
+sudo kubebuilder/bin/kubectl apply -f manifests/nginx-demo-deployment.yaml
 
 # Check all resources
 sudo kubebuilder/bin/kubectl get all -A
@@ -347,15 +346,20 @@ sudo kubebuilder/bin/kubectl get all -A
 
 ### Pod Stuck in Pending State
 
-If pods are stuck in `Pending` state, check for node taints:
+If pods are stuck in `Pending` state, check for node taints and tolerations:
 
 ```bash
 # Check node taints
 sudo kubebuilder/bin/kubectl describe nodes
 
-# Remove common taints that prevent scheduling
+# Check pod events for scheduling issues
+sudo kubebuilder/bin/kubectl describe pod <pod-name>
+
+# Alternative approach: Remove the taint completely (less preferred)
 sudo kubebuilder/bin/kubectl taint nodes $(hostname) node.cloudprovider.kubernetes.io/uninitialized:NoSchedule-
 ```
+
+**Preferred approach:** Use tolerations and node selectors in your pod specifications as shown in the verification step above.
 
 ### Container Runtime Issues
 
