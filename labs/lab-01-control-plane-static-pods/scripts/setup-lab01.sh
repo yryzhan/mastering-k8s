@@ -78,22 +78,26 @@ setup_certificates_and_configs() {
     
     export HOST_IP=$(hostname -I | awk '{print $1}')
     
+    # Create PKI directory with proper permissions first
+    sudo mkdir -p /etc/kubernetes/pki
+    sudo chmod 755 /etc/kubernetes/pki
+    
     # Generate service account key pair
     if [ ! -f "/etc/kubernetes/pki/sa.key" ]; then
-        openssl genrsa -out /etc/kubernetes/pki/sa.key 2048
-        openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.pub
+        sudo openssl genrsa -out /etc/kubernetes/pki/sa.key 2048
+        sudo openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.pub
     fi
 
     # Generate token file  
     if [ ! -f "/etc/kubernetes/pki/token.csv" ]; then
         export TOKEN="1234567890"
-        echo "${TOKEN},admin,admin,system:masters" | sudo tee /etc/kubernetes/pki/token.csv
+        echo "${TOKEN},admin,admin,system:masters" | sudo tee /etc/kubernetes/pki/token.csv > /dev/null
     fi
 
     # Generate CA certificate
     if [ ! -f "/etc/kubernetes/pki/ca.crt" ]; then
-        openssl genrsa -out /etc/kubernetes/pki/ca.key 2048
-        openssl req -x509 -new -nodes -key /etc/kubernetes/pki/ca.key -subj "/CN=kubernetes-ca" -days 365 -out /etc/kubernetes/pki/ca.crt
+        sudo openssl genrsa -out /etc/kubernetes/pki/ca.key 2048
+        sudo openssl req -x509 -new -nodes -key /etc/kubernetes/pki/ca.key -subj "/CN=kubernetes-ca" -days 365 -out /etc/kubernetes/pki/ca.crt
         sudo cp /etc/kubernetes/pki/ca.crt /var/lib/kubelet/ca.crt
         sudo cp /etc/kubernetes/pki/ca.crt /var/lib/kubelet/pki/ca.crt
     fi
