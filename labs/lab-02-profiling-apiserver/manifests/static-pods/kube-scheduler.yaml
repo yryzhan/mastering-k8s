@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-scheduler
+  namespace: kube-system
+  labels:
+    component: kube-scheduler
+    tier: control-plane
+spec:
+  containers:
+  - name: kube-scheduler
+    image: registry.k8s.io/kube-scheduler:v1.30.0
+    command:
+    - kube-scheduler
+    args:
+    - --kubeconfig=/etc/kubernetes/kubeconfig
+    - --leader-elect=false
+    - --v=2
+    - --bind-address=0.0.0.0
+    ports:
+    - containerPort: 10259
+      name: https
+      protocol: TCP
+    volumeMounts:
+    - name: kubeconfig
+      mountPath: /etc/kubernetes/kubeconfig
+      readOnly: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  volumes:
+  - name: kubeconfig
+    hostPath:
+      path: /etc/kubernetes/kubeconfig
+      type: File
+  hostNetwork: true
+  restartPolicy: Always
