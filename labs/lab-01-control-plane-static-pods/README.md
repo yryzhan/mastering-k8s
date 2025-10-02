@@ -132,14 +132,6 @@ lab-01-control-plane-static-pods/
 - [Static Pods](https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/)
 - [kubelet Configuration](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/)
 
-## Troubleshooting
-
-Common issues you might encounter:
-
-- **Kubelet not starting**: Check configuration file and paths
-- **API server not accessible**: Verify certificates and port bindings
-- **Pods stuck in Pending**: This is expected - investigate why!
-
 ## Next Steps
 
 After completing this lab, proceed to [Lab 02: Profiling kube-apiserver](../lab-02-profiling-apiserver/) to learn about performance analysis.
