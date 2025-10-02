@@ -36,6 +36,7 @@ This guide explains each command and step needed to manually build a Kubernetes 
 ## Additional Documentation
 
 - [Useful Links and Resources](./docs/useful-links.md) - Curated collection of learning resources for mastering Kubernetes
+- [Cleanup Guide](./docs/cleanup-guide.md) - Commands to clean up Kubernetes components and reset your environment
 - [OpenSSH Extension Setup](./docs/openssh-extension-setup.md) - Guide for installing and configuring the Remote-SSH extension for remote development
 - [Codespace Port Forwarding](./docs/codespace-port-forward.md) - Guide for forwarding ports from GitHub Codespaces to your local machine
 - [Labs Overview](./labs/README.md) - Hands-on exercises for mastering Kubernetes
