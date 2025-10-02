@@ -5,7 +5,18 @@
 
 set -e
 
-echo "Setting up Lab 01: Control Plane with Static Pods..."
+# Component deployment mode
+DEPLOY_MODE=${1:-"all"}  # Options: etcd, apiserver, scheduler, controller-manager, all
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}Setting up Lab 01: Control Plane with Static Pods...${NC}"
+echo -e "${YELLOW}Deploy mode: $DEPLOY_MODE${NC}"
 
 # Function to check if a process is running
 is_running() {
@@ -118,7 +129,7 @@ setup_certificates_and_configs() {
     fi
 
     # Create kubeconfig for components
-    cat <<EOF | sudo tee /etc/kubernetes/kubeconfig
+    cat <<EOF | sudo tee /etc/kubernetes/kubeconfig > /dev/null
 apiVersion: v1
 kind: Config
 clusters:
@@ -135,11 +146,11 @@ current-context: local
 users:
 - name: admin
   user:
-    token: 1234567890
+    token: "1234567890"
 EOF
 
     # Configure CNI
-    cat <<EOF | sudo tee /etc/cni/net.d/10-mynet.conf
+    cat <<EOF | sudo tee /etc/cni/net.d/10-mynet.conf > /dev/null
 {
     "cniVersion": "0.3.1",
     "name": "mynet",
@@ -158,7 +169,7 @@ EOF
 EOF
 
     # Configure containerd
-    cat <<EOF | sudo tee /etc/containerd/config.toml
+    cat <<EOF | sudo tee /etc/containerd/config.toml > /dev/null
 version = 3
 
 [grpc]
@@ -186,7 +197,7 @@ version = 3
 EOF
 
     # Configure kubelet
-    cat <<EOF | sudo tee /var/lib/kubelet/config.yaml
+    cat <<EOF | sudo tee /var/lib/kubelet/config.yaml > /dev/null
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 authentication:
@@ -215,20 +226,60 @@ EOF
 }
 
 prepare_static_pod_manifests() {
-    echo "Preparing static pod manifests..."
+    echo -e "${BLUE}Preparing static pod manifests...${NC}"
     
     export HOST_IP=$(hostname -I | awk '{print $1}')
     
+    # Get the absolute path to the lab directory
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    LAB_DIR="$(dirname "$SCRIPT_DIR")"
+    MANIFESTS_DIR="$LAB_DIR/manifests/static-pods"
+    
+    echo "Looking for manifests in: $MANIFESTS_DIR"
+    
+    # Define which manifests to deploy based on mode
+    case $DEPLOY_MODE in
+        "etcd")
+            MANIFESTS_TO_DEPLOY="etcd.yaml"
+            echo -e "${YELLOW}Deploying only etcd${NC}"
+            ;;
+        "apiserver")
+            MANIFESTS_TO_DEPLOY="etcd.yaml kube-apiserver.yaml"
+            echo -e "${YELLOW}Deploying etcd and kube-apiserver${NC}"
+            ;;
+        "scheduler")
+            MANIFESTS_TO_DEPLOY="etcd.yaml kube-apiserver.yaml kube-scheduler.yaml"
+            echo -e "${YELLOW}Deploying etcd, kube-apiserver, and kube-scheduler${NC}"
+            ;;
+        "controller-manager")
+            MANIFESTS_TO_DEPLOY="etcd.yaml kube-apiserver.yaml kube-scheduler.yaml kube-controller-manager.yaml"
+            echo -e "${YELLOW}Deploying all components${NC}"
+            ;;
+        "all")
+            MANIFESTS_TO_DEPLOY="etcd.yaml kube-apiserver.yaml kube-scheduler.yaml kube-controller-manager.yaml"
+            echo -e "${YELLOW}Deploying all components${NC}"
+            ;;
+        *)
+            echo -e "${RED}Invalid deploy mode: $DEPLOY_MODE${NC}"
+            echo "Valid options: etcd, apiserver, scheduler, controller-manager, all"
+            exit 1
+            ;;
+    esac
+    
     # Copy static pod manifests and replace HOST_IP placeholder
-    for manifest in etcd.yaml kube-apiserver.yaml kube-scheduler.yaml kube-controller-manager.yaml; do
-        if [ -f "labs/lab-01-control-plane-static-pods/manifests/static-pods/$manifest" ]; then
-            echo "Processing $manifest..."
-            sudo cp "labs/lab-01-control-plane-static-pods/manifests/static-pods/$manifest" "/etc/kubernetes/manifests/"
+    for manifest in $MANIFESTS_TO_DEPLOY; do
+        if [ -f "$MANIFESTS_DIR/$manifest" ]; then
+            echo -e "${GREEN}Processing $manifest...${NC}"
+            sudo cp "$MANIFESTS_DIR/$manifest" "/etc/kubernetes/manifests/"
             sudo sed -i "s/HOST_IP/$HOST_IP/g" "/etc/kubernetes/manifests/$manifest"
         else
-            echo "Warning: $manifest not found in lab static-pods directory"
+            echo -e "${RED}Warning: $manifest not found in $MANIFESTS_DIR${NC}"
         fi
     done
+    
+    # List what was copied
+    echo -e "${BLUE}Static pod manifests in /etc/kubernetes/manifests/:${NC}"
+    ls -la /etc/kubernetes/manifests/ || true
 }
 
 start_runtime_and_kubelet() {
@@ -242,47 +293,126 @@ start_runtime_and_kubelet() {
         sleep 5
     fi
 
-    # Start kubelet if not running
-    if ! is_running "kubelet"; then
-        echo "Starting kubelet..."
-        sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
-            --config=/var/lib/kubelet/config.yaml \
-            --root-dir=/var/lib/kubelet \
-            --cert-dir=/var/lib/kubelet/pki \
-            --hostname-override=$(hostname) \
-            --pod-infra-container-image=registry.k8s.io/pause:3.10 \
-            --node-ip=$(hostname -I | awk '{print $1}') \
-            --cgroup-driver=cgroupfs \
-            --max-pods=10 \
-            --v=2 &
-        sleep 10
+    # Restart kubelet to pick up new manifests
+    if is_running "kubelet"; then
+        echo -e "${YELLOW}Restarting kubelet to pick up new manifests...${NC}"
+        sudo pkill -f kubelet
+        sleep 3
     fi
+    
+    echo "Starting kubelet..."
+    sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
+        --kubeconfig=/etc/kubernetes/kubeconfig \
+        --config=/var/lib/kubelet/config.yaml \
+        --root-dir=/var/lib/kubelet \
+        --cert-dir=/var/lib/kubelet/pki \
+        --hostname-override=$(hostname) \
+        --pod-infra-container-image=registry.k8s.io/pause:3.10 \
+        --node-ip=$(hostname -I | awk '{print $1}') \
+        --cgroup-driver=cgroupfs \
+        --max-pods=10 \
+        --v=2 &
+    sleep 10
 }
 
 verify_setup() {
-    echo "Verifying setup..."
+    echo -e "${BLUE}Verifying setup...${NC}"
     echo "Waiting for static pods to start..."
     sleep 30
     
-    echo "Checking static pods status:"
-    sudo kubebuilder/bin/kubectl get pods -n kube-system || echo "API server may not be ready yet"
+    echo -e "${BLUE}Checking static pods status:${NC}"
+    
+    case $DEPLOY_MODE in
+        "etcd")
+            echo -e "${YELLOW}Checking etcd container...${NC}"
+            if sudo ctr -n k8s.io containers ls 2>/dev/null | grep -q etcd; then
+                echo -e "${GREEN}✅ etcd container created${NC}"
+                sudo ctr -n k8s.io containers ls | grep etcd
+            else
+                echo -e "${RED}❌ etcd container not found${NC}"
+            fi
+            
+            # Test etcd directly via HTTP
+            echo ""
+            echo -e "${YELLOW}Testing etcd connectivity...${NC}"
+            sleep 5  # Give etcd a bit more time to start
+            if curl -s http://$(hostname -I | awk '{print $1}'):2379/health 2>/dev/null | grep -q "true"; then
+                echo -e "${GREEN}✅ etcd is healthy${NC}"
+                curl -s http://$(hostname -I | awk '{print $1}'):2379/health
+            else
+                echo -e "${RED}❌ etcd health check failed${NC}"
+                echo "Checking if etcd is listening on port 2379..."
+                netstat -tlnp 2>/dev/null | grep 2379 || echo "Port 2379 not listening"
+            fi
+            ;;
+        "apiserver")
+            echo -e "${YELLOW}Checking etcd and API server...${NC}"
+            sudo kubebuilder/bin/kubectl get pods -n kube-system | grep -E "(etcd|kube-apiserver)" || echo "Some pods may not be ready yet"
+            
+            echo -e "${YELLOW}Checking API server health:${NC}"
+            if sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose' 2>/dev/null; then
+                echo -e "${GREEN}✅ API server is ready${NC}"
+            else
+                echo -e "${RED}❌ API server not ready${NC}"
+            fi
+            ;;
+        "scheduler")
+            echo -e "${YELLOW}Checking etcd, API server, and scheduler...${NC}"
+            sudo kubebuilder/bin/kubectl get pods -n kube-system | grep -E "(etcd|kube-apiserver|kube-scheduler)" || echo "Some pods may not be ready yet"
+            ;;
+        "controller-manager"|"all")
+            echo -e "${YELLOW}Checking all components...${NC}"
+            sudo kubebuilder/bin/kubectl get pods -n kube-system || echo "API server may not be ready yet"
+            
+            echo -e "${YELLOW}Checking API server health:${NC}"
+            sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose' || echo "API server not ready"
+            ;;
+    esac
     
     echo ""
-    echo "Checking API server health:"
-    sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose' || echo "API server not ready"
+    echo -e "${GREEN}Lab 01 Setup Complete for mode: $DEPLOY_MODE!${NC}"
+    echo ""
+    echo -e "${BLUE}Next steps:${NC}"
     
-    echo ""
-    echo "Lab 01 Setup Complete!"
-    echo ""
-    echo "Next steps:"
-    echo "1. To deploy the nginx application (this should fail initially):"
-    echo "   sudo kubebuilder/bin/kubectl apply -f labs/lab-01-control-plane-static-pods/manifests/nginx-deployment.yaml"
-    echo ""
-    echo "2. Investigate why the deployment doesn't work:"
-    echo "   sudo kubebuilder/bin/kubectl get pods"
-    echo "   sudo kubebuilder/bin/kubectl describe pod <pod-name>"
-    echo ""
-    echo "3. Think about what components are missing for pod networking!"
+    case $DEPLOY_MODE in
+        "etcd")
+            echo "1. Verify etcd is working:"
+            echo "   curl http://$(hostname -I | awk '{print $1}'):2379/health"
+            echo ""
+            echo "2. Check etcd container status:"
+            echo "   sudo ctr -n k8s.io containers ls | grep etcd"
+            echo ""
+            echo "3. To proceed with API server:"
+            echo "   sudo labs/lab-01-control-plane-static-pods/scripts/setup-lab01.sh apiserver"
+            ;;
+        "apiserver")
+            echo "1. Test API server connectivity:"
+            echo "   sudo kubebuilder/bin/kubectl get --raw='/readyz'"
+            echo ""
+            echo "2. Check pods:"
+            echo "   sudo kubebuilder/bin/kubectl get pods -n kube-system"
+            echo ""
+            echo "3. To proceed with scheduler:"
+            echo "   sudo labs/lab-01-control-plane-static-pods/scripts/setup-lab01.sh scheduler"
+            ;;
+        "scheduler")
+            echo "1. Check scheduler status:"
+            echo "   sudo kubebuilder/bin/kubectl get pods -n kube-system"
+            echo ""
+            echo "2. To proceed with controller-manager:"
+            echo "   sudo labs/lab-01-control-plane-static-pods/scripts/setup-lab01.sh controller-manager"
+            ;;
+        "controller-manager"|"all")
+            echo "1. To deploy the nginx application (this should fail initially):"
+            echo "   sudo kubebuilder/bin/kubectl apply -f labs/lab-01-control-plane-static-pods/manifests/nginx-deployment.yaml"
+            echo ""
+            echo "2. Investigate why the deployment doesn't work:"
+            echo "   sudo kubebuilder/bin/kubectl get pods"
+            echo "   sudo kubebuilder/bin/kubectl describe pod <pod-name>"
+            echo ""
+            echo "3. Think about what components are missing for pod networking!"
+            ;;
+    esac
 }
 
 stop() {
@@ -297,16 +427,82 @@ stop() {
 
 cleanup() {
     stop
-    echo "Cleaning up Lab 01..."
-    sudo rm -rf /var/lib/kubelet/*
-    sudo rm -rf /run/containerd/*
+    echo -e "${BLUE}Cleaning up Lab 01...${NC}"
+    
+    # Remove leftover containers and tasks
+    echo -e "${YELLOW}Removing containerd containers...${NC}"
+    if command -v ctr >/dev/null 2>&1; then
+        # Remove all containers in k8s.io namespace
+        CONTAINERS=$(sudo ctr -n k8s.io containers ls -q 2>/dev/null || true)
+        if [ -n "$CONTAINERS" ]; then
+            echo "$CONTAINERS" | while read -r container; do
+                echo "  • Removing container: $container"
+                sudo ctr -n k8s.io containers rm "$container" 2>/dev/null || true
+            done
+        fi
+        
+        # Remove all tasks
+        TASKS=$(sudo ctr -n k8s.io tasks ls -q 2>/dev/null || true)
+        if [ -n "$TASKS" ]; then
+            echo "$TASKS" | while read -r task; do
+                echo "  • Killing task: $task"
+                sudo ctr -n k8s.io tasks kill "$task" 2>/dev/null || true
+                sudo ctr -n k8s.io tasks rm "$task" 2>/dev/null || true
+            done
+        fi
+    fi
+    
+    # Unmount any remaining volume mounts
+    echo -e "${YELLOW}Unmounting kubelet volumes...${NC}"
+    if [ -d "/var/lib/kubelet/pods" ]; then
+        # Find and unmount all mounts under /var/lib/kubelet/pods
+        sudo find /var/lib/kubelet/pods -type d -name "volumes" 2>/dev/null | while read -r vol_dir; do
+            sudo find "$vol_dir" -type d 2>/dev/null | while read -r mount_dir; do
+                if sudo mountpoint -q "$mount_dir" 2>/dev/null; then
+                    echo "  • Unmounting: $mount_dir"
+                    sudo umount "$mount_dir" 2>/dev/null || true
+                fi
+            done
+        done
+    fi
+    
+    # Remove data directories
+    echo -e "${YELLOW}Cleaning up data directories...${NC}"
+    sudo rm -rf /var/lib/kubelet/* 2>/dev/null || true
+    sudo rm -rf /run/containerd/* 2>/dev/null || true
+    sudo rm -rf /var/lib/containerd/* 2>/dev/null || true
+    sudo rm -rf ./etcd 2>/dev/null || true
+    
+    # Remove certificates and configs
+    echo -e "${YELLOW}Removing certificates and configuration...${NC}"
     sudo rm -rf /etc/kubernetes/pki/*
     sudo rm -f /etc/kubernetes/kubeconfig
-    echo "Lab 01 cleanup complete"
+    sudo rm -f /etc/cni/net.d/*.conf
+    
+    # Remove static pod manifests
+    echo -e "${YELLOW}Removing static pod manifests...${NC}"
+    sudo rm -f /etc/kubernetes/manifests/*.yaml
+    
+    echo -e "${GREEN}✅ Lab 01 cleanup complete${NC}"
+    echo ""
+    echo "All Lab 01 resources have been cleaned up:"
+    echo "  • Processes stopped"
+    echo "  • Containers removed"
+    echo "  • Data directories cleared"
+    echo "  • Configuration files removed"
 }
 
-case "${1:-start}" in
+case "${1:-all}" in
+    etcd|apiserver|scheduler|controller-manager|all)
+        download_dependencies
+        setup_certificates_and_configs
+        prepare_static_pod_manifests
+        start_runtime_and_kubelet
+        verify_setup
+        ;;
     start)
+        # Backward compatibility - default to all components
+        DEPLOY_MODE="all"
         download_dependencies
         setup_certificates_and_configs
         prepare_static_pod_manifests
@@ -320,11 +516,19 @@ case "${1:-start}" in
         cleanup
         ;;
     *)
-        echo "Usage: $0 {start|stop|cleanup}"
+        echo "Usage: $0 {etcd|apiserver|scheduler|controller-manager|all|start|stop|cleanup}"
         echo ""
-        echo "start   - Set up and start Lab 01 environment"
-        echo "stop    - Stop Lab 01 components"
-        echo "cleanup - Stop and clean up all Lab 01 data"
+        echo "Component modes:"
+        echo "  etcd              - Deploy only etcd"
+        echo "  apiserver         - Deploy etcd + kube-apiserver"
+        echo "  scheduler         - Deploy etcd + kube-apiserver + kube-scheduler"
+        echo "  controller-manager- Deploy all components"
+        echo "  all               - Deploy all components (default)"
+        echo ""
+        echo "Legacy modes:"
+        echo "  start             - Set up and start Lab 01 environment (all components)"
+        echo "  stop              - Stop Lab 01 components"
+        echo "  cleanup           - Stop and clean up all Lab 01 data"
         exit 1
         ;;
 esac

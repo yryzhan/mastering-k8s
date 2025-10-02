@@ -57,6 +57,55 @@ stop_processes() {
     echo "✅ All Kubernetes processes stopped"
 }
 
+# Function to clean up containerd containers and images
+cleanup_containers() {
+    echo ""
+    echo "🐳 Cleaning up containerd containers and images..."
+    
+    # Check if ctr command is available
+    if command -v ctr >/dev/null 2>&1; then
+        # Remove all containers in k8s.io namespace
+        echo "  - Removing containers..."
+        CONTAINERS=$(ctr -n k8s.io containers ls -q 2>/dev/null || true)
+        if [ -n "$CONTAINERS" ]; then
+            echo "$CONTAINERS" | while read -r container; do
+                echo "    • Removing container: $container"
+                ctr -n k8s.io containers rm "$container" 2>/dev/null || true
+            done
+        else
+            echo "    • No containers found"
+        fi
+        
+        # Remove all tasks in k8s.io namespace
+        echo "  - Removing tasks..."
+        TASKS=$(ctr -n k8s.io tasks ls -q 2>/dev/null || true)
+        if [ -n "$TASKS" ]; then
+            echo "$TASKS" | while read -r task; do
+                echo "    • Killing task: $task"
+                ctr -n k8s.io tasks kill "$task" 2>/dev/null || true
+                ctr -n k8s.io tasks rm "$task" 2>/dev/null || true
+            done
+        else
+            echo "    • No tasks found"
+        fi
+        
+        # Optionally clean up images (commented out by default to save bandwidth)
+        # Uncomment if you want to remove all cached images
+        # echo "  - Removing images..."
+        # IMAGES=$(ctr -n k8s.io images ls -q 2>/dev/null || true)
+        # if [ -n "$IMAGES" ]; then
+        #     echo "$IMAGES" | while read -r image; do
+        #         echo "    • Removing image: $image"
+        #         ctr -n k8s.io images rm "$image" 2>/dev/null || true
+        #     done
+        # fi
+        
+        echo "✅ Containerd resources cleaned"
+    else
+        echo "  ⚠️  ctr command not found, skipping container cleanup"
+    fi
+}
+
 # Function to clean up data directories
 cleanup_data() {
     echo ""
@@ -201,6 +250,7 @@ show_help() {
     echo ""
     echo "This script will:"
     echo "  • Stop all Kubernetes processes"
+    echo "  • Remove leftover containers and tasks"
     echo "  • Clean up data directories"
     echo "  • Remove certificates and configuration"
     echo "  • Reset network interfaces (only with --clean-network)"
@@ -274,6 +324,7 @@ main() {
     
     # Run cleanup steps
     stop_processes
+    cleanup_containers
     cleanup_data
     cleanup_config
     

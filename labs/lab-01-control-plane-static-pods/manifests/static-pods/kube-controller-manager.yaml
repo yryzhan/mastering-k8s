@@ -12,6 +12,7 @@ spec:
     image: registry.k8s.io/kube-controller-manager:v1.30.0
     command:
     - kube-controller-manager
+    args:
     - --kubeconfig=/etc/kubernetes/kubeconfig
     - --leader-elect=false
     - --cloud-provider=external
@@ -32,25 +33,6 @@ spec:
     - name: kubeconfig
       mountPath: /etc/kubernetes/kubeconfig
       readOnly: true
-    livenessProbe:
-      failureThreshold: 8
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10257
-        scheme: HTTPS
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      timeoutSeconds: 15
-    readinessProbe:
-      failureThreshold: 3
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10257
-        scheme: HTTPS
-      periodSeconds: 1
-      timeoutSeconds: 15
     resources:
       requests:
         cpu: 200m

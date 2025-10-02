@@ -12,6 +12,7 @@ spec:
     image: registry.k8s.io/etcd:3.5.10-0
     command:
     - etcd
+    args:
     - --advertise-client-urls=http://HOST_IP:2379
     - --listen-client-urls=http://0.0.0.0:2379
     - --data-dir=/var/lib/etcd

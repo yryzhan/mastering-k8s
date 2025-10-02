@@ -12,6 +12,7 @@ spec:
     image: registry.k8s.io/kube-scheduler:v1.30.0
     command:
     - kube-scheduler
+    args:
     - --kubeconfig=/etc/kubernetes/kubeconfig
     - --leader-elect=false
     - --v=2
@@ -24,25 +25,6 @@ spec:
     - name: kubeconfig
       mountPath: /etc/kubernetes/kubeconfig
       readOnly: true
-    livenessProbe:
-      failureThreshold: 8
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10259
-        scheme: HTTPS
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      timeoutSeconds: 15
-    readinessProbe:
-      failureThreshold: 3
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10259
-        scheme: HTTPS
-      periodSeconds: 1
-      timeoutSeconds: 15
     resources:
       requests:
         cpu: 100m

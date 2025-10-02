@@ -40,6 +40,7 @@ The cleanup script supports several options:
 
 **Standard Cleanup (`./cleanup.sh`):**
 - ✅ Stops all Kubernetes processes gracefully
+- ✅ Removes leftover containers and tasks from containerd
 - ✅ Cleans up data directories (`./etcd`, `/var/lib/kubelet/*`, etc.)
 - ✅ Removes certificates and configuration files
 - ✅ Cleans up CNI configuration files
@@ -76,6 +77,20 @@ sudo pkill -f "kube-scheduler"
 sudo pkill -f "kube-apiserver"
 sudo pkill -f "containerd"
 sudo pkill -f "etcd"
+```
+
+### Remove Leftover Containers
+
+```bash
+# Remove all containers in k8s.io namespace
+sudo ctr -n k8s.io containers ls -q | xargs -r sudo ctr -n k8s.io containers rm
+
+# Remove all tasks
+sudo ctr -n k8s.io tasks ls -q | xargs -r -I {} sudo ctr -n k8s.io tasks kill {}
+sudo ctr -n k8s.io tasks ls -q | xargs -r sudo ctr -n k8s.io tasks rm
+
+# Optional: Remove all cached images (saves bandwidth by not removing)
+# sudo ctr -n k8s.io images ls -q | xargs -r sudo ctr -n k8s.io images rm
 ```
 
 ### Clean Up Data Directories
