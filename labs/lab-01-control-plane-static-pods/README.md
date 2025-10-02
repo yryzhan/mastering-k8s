@@ -2,6 +2,44 @@
 
 **Difficulty Level:** Beginner
 
+## Lab Agenda & Task Checklist
+
+### ⏰ **Estimated Time:** 2-3 hours
+
+### 📋 **Task Overview:**
+> **Goal:** Deploy a Kubernetes control plane using kubelet static pods and understand why a basic deployment fails
+
+#### **🎯 Tasks to Complete:**
+
+- [ ] **Step 1: Generate Manifests**
+  - [ ] Create `etcd.yaml` static pod manifest
+  - [ ] Create `kube-apiserver.yaml` static pod manifest  
+  - [ ] Create `kube-scheduler.yaml` static pod manifest
+  - [ ] Create `kube-controller-manager.yaml` static pod manifest
+
+- [ ] **Step 2: Deploy Control Plane**
+  - [ ] Configure kubelet to use static pod path (`/etc/kubernetes/manifests/`)
+  - [ ] Deploy control plane components using kubelet static pods
+  - [ ] Verify all components are running with `kubectl get pods -n kube-system`
+
+- [ ] **Step 3: Deploy Application**
+  - [ ] Create nginx deployment manifest (3 replicas)
+  - [ ] Apply the deployment using `kubectl apply`
+  - [ ] Observe deployment status
+
+- [ ] **Step 4: Critical Analysis**
+  - [ ] **🔍 INVESTIGATE:** Why doesn't the deployment work?
+  - [ ] **💡 IDENTIFY:** What components are missing?
+  - [ ] **🛠️ SOLUTION:** How to fix the issue?
+
+#### **❓ Key Questions to Answer:**
+- Why are pods stuck in `Pending` state?
+- What component is missing for pod networking?
+- What is needed for DNS resolution?
+- How do pods get scheduled without a network plugin?
+
+---
+
 ## Overview
 
 In this lab, you will deploy a Kubernetes control plane using kubelet static pods. This approach helps you understand the core components of Kubernetes and how they interact with each other.
@@ -60,23 +98,25 @@ Think about:
 lab-01-control-plane-static-pods/
 ├── README.md                    # This file
 ├── manifests/
-│   ├── etcd.yaml
-│   ├── kube-apiserver.yaml
-│   ├── kube-scheduler.yaml
-│   ├── kube-controller-manager.yaml
-│   └── nginx-deployment.yaml
+│   ├── static-pods/             # Static pod manifests for kubelet
+│   │   ├── etcd.yaml
+│   │   ├── kube-apiserver.yaml
+│   │   ├── kube-scheduler.yaml
+│   │   └── kube-controller-manager.yaml
+│   └── nginx-deployment.yaml   # Regular deployment (will fail initially)
 ├── scripts/
-│   └── setup-kubelet.sh
+│   └── setup-lab01.sh          # Lab setup script
 └── solutions/
     └── SOLUTION.md
 ```
 
 ## Hints
 
-1. Static pods are managed directly by kubelet without API server intervention
-2. The manifests should be placed in kubelet's static pod directory (typically `/etc/kubernetes/manifests/`)
-3. Pay attention to component communication - each component needs to know how to reach others
-4. Consider certificate generation for secure communication
+1. **Static pods** are managed directly by kubelet without API server intervention
+2. The **static pod manifests** (in `manifests/static-pods/`) should be placed in kubelet's static pod directory (`/etc/kubernetes/manifests/`)
+3. The **nginx deployment** (in `manifests/`) will be applied via kubectl and should initially fail
+4. Pay attention to component communication - each component needs to know how to reach others
+5. Consider certificate generation for secure communication
 
 ## Success Criteria
 
