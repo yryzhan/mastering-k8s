@@ -1,11 +1,42 @@
-# Building Kubernetes Control Plane
+# Mastering Kubernetes
 
-This guide explains each command and step needed to manually build a Kubernetes control plane, based on the automation in `setup-amd64.sh`.
+A comprehensive hands-on guide to understanding Kubernetes internals by manually building a control plane and completing practical labs.
+
+## Repository Structure
+
+- **[labs/](./labs/)** - Hands-on lab exercises for mastering Kubernetes concepts
+  - [Lab 01: Control Plane with Static Pods](./labs/lab-01-control-plane-static-pods/) - Beginner level
+  - [Lab 02: Profiling kube-apiserver](./labs/lab-02-profiling-apiserver/) - Advanced level
+  - [Lab 03: Cloud Controller Manager](./labs/lab-03-cloud-controller-manager/) - Expert level
+- **docs/** - Additional documentation and guides
+- **setup.sh** - Automated setup script (use after understanding manual steps)
+
+## Quick Start
+
+### Option 1: Automated Setup
+
+If you already understand the concepts and want to quickly set up a control plane:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+**Note:** It's highly recommended to follow the manual steps below first to understand what each component does.
+
+### Option 2: Manual Setup (Recommended for Learning)
+
+Follow the step-by-step guide below to manually build the control plane and understand each component.
+
+## Building Kubernetes Control Plane
+
+This guide explains each command and step needed to manually build a Kubernetes control plane. After completing these manual steps, you can use `setup.sh` for automated deployment.
 
 ## Additional Documentation
 
 - [OpenSSH Extension Setup](./docs/openssh-extension-setup.md) - Guide for installing and configuring the Remote-SSH extension for remote development
 - [Codespace Port Forwarding](./docs/codespace-port-forward.md) - Guide for forwarding ports from GitHub Codespaces to your local machine
+- [Labs Overview](./labs/README.md) - Hands-on exercises for mastering Kubernetes
 
 ## 1. Create Required Directories
 
@@ -366,6 +397,41 @@ sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
 - Default token is hardcoded for development only
 - Components use insecure connections locally
 - This setup is for learning/development only, not for production use
+
+## Next Steps: Hands-On Labs
+
+After completing this manual setup, enhance your Kubernetes knowledge with our practical labs:
+
+### [📚 Lab 01: Control Plane with Static Pods](./labs/lab-01-control-plane-static-pods/)
+
+**Difficulty:** Beginner
+
+Build a control plane using kubelet static pods and discover why a deployment might not work. Learn about CNI plugins, kube-proxy, and CoreDNS.
+
+### [🔥 Lab 02: Profiling kube-apiserver](./labs/lab-02-profiling-apiserver/)
+
+**Difficulty:** Advanced
+
+Profile the kube-apiserver using performance analysis tools, generate flame graphs, and identify performance bottlenecks.
+
+### [☁️ Lab 03: Cloud Controller Manager](./labs/lab-03-cloud-controller-manager/)
+
+**Difficulty:** Expert
+
+Deploy a Cloud Controller Manager, integrate with cloud provider APIs, and create real load balancers with external IPs.
+
+**[View All Labs →](./labs/README.md)**
+
+## Automated Setup
+
+Once you've completed the manual steps and understand each component, you can use the automated setup script for future deployments:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+The setup script automates all the manual steps described in this guide.
 
 ## Order of Operations
 
