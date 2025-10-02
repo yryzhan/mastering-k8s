@@ -51,8 +51,8 @@ kubectl run debug-profiler \
 ### Step 3: Find API Server PID
 
 ```bash
-# Exec into the debug container
-kubectl exec -it debug-profiler -- /bin/bash
+# Exec into the debug container (note: use /bin/sh not /bin/bash)
+kubectl exec -it debug-profiler -- /bin/sh
 
 # Inside container, find kube-apiserver PID
 ps aux | grep kube-apiserver | grep -v grep
@@ -87,9 +87,9 @@ done
 ```bash
 # Inside the debug container
 # Record for 30 seconds with 99 samples per second
-perf record -F 99 -g -p $APISERVER_PID -o /tmp/out.perf sleep 30
+/app/perf record -F 99 -g -p $APISERVER_PID -o /results/out.perf sleep 30
 
-# The output file will be saved as /tmp/out.perf
+# The output file will be saved as /results/out.perf (accessible on host at /tmp/profiling-results/)
 ```
 
 **Note**: If you see "Permission denied", ensure:
@@ -108,12 +108,16 @@ if [ ! -d "/FlameGraph" ]; then
 fi
 
 # Generate the flame graph
-perf script -i /tmp/out.perf | \
-  /FlameGraph/stackcollapse-perf.pl | \
-  /FlameGraph/flamegraph.pl > /tmp/flame.svg
+/app/perf script -i /results/out.perf | \
+  /app/FlameGraph/stackcollapse-perf.pl | \
+  /app/FlameGraph/flamegraph.pl > /results/flame.svg
 
 # Verify the file was created
-ls -lh /tmp/flame.svg
+ls -lh /results/flame.svg
+
+# Files are accessible on the host at:
+# /tmp/profiling-results/out.perf
+# /tmp/profiling-results/flame.svg
 ```
 
 ### Step 7: Copy Flame Graph to Local Machine
@@ -122,11 +126,12 @@ ls -lh /tmp/flame.svg
 # Exit the container
 exit
 
-# Copy the file from the container
-kubectl cp debug-profiler:/tmp/flame.svg ./results/flame.svg
+# The flame graph is already accessible on the host at /tmp/profiling-results/
+# Copy it to your lab results directory
+sudo cp /tmp/profiling-results/flame.svg ./labs/lab-02-profiling-apiserver/results/
 
 # Verify the file
-ls -lh ./results/flame.svg
+ls -lh ./labs/lab-02-profiling-apiserver/results/flame.svg
 ```
 
 ### Step 8: View and Analyze
@@ -135,13 +140,16 @@ Open `flame.svg` in a web browser:
 
 ```bash
 # On Linux
-xdg-open ./results/flame.svg
+xdg-open ./labs/lab-02-profiling-apiserver/results/flame.svg
 
 # On macOS
-open ./results/flame.svg
+open ./labs/lab-02-profiling-apiserver/results/flame.svg
 
 # On Windows
-start ./results/flame.svg
+start ./labs/lab-02-profiling-apiserver/results/flame.svg
+
+# Or view directly from the host directory
+xdg-open /tmp/profiling-results/flame.svg
 ```
 
 ## Understanding the Flame Graph
@@ -249,9 +257,9 @@ perf report -i /tmp/out.perf
 chmod +x /FlameGraph/*.pl
 
 # Try generating again step by step
-perf script -i /tmp/out.perf > /tmp/out.stacks
-/FlameGraph/stackcollapse-perf.pl /tmp/out.stacks > /tmp/out.folded
-/FlameGraph/flamegraph.pl /tmp/out.folded > /tmp/flame.svg
+/app/perf script -i /results/out.perf > /results/out.stacks
+/app/FlameGraph/stackcollapse-perf.pl /results/out.stacks > /results/out.folded
+/app/FlameGraph/flamegraph.pl /results/out.folded > /results/flame.svg
 ```
 
 ## Advanced Options
@@ -260,33 +268,34 @@ perf script -i /tmp/out.perf > /tmp/out.stacks
 
 ```bash
 # Increase sampling frequency to 999 Hz
-perf record -F 999 -g -p $APISERVER_PID -o /tmp/out.perf sleep 30
+/app/perf record -F 999 -g -p $APISERVER_PID -o /results/out.perf sleep 30
 ```
 
 ### Profile Specific Events
 
 ```bash
 # Profile CPU cycles
-perf record -e cycles -g -p $APISERVER_PID -o /tmp/cycles.perf sleep 30
+/app/perf record -e cycles -g -p $APISERVER_PID -o /results/cycles.perf sleep 30
 
 # Profile cache misses
-perf record -e cache-misses -g -p $APISERVER_PID -o /tmp/cache.perf sleep 30
+/app/perf record -e cache-misses -g -p $APISERVER_PID -o /results/cache.perf sleep 30
 
 # Profile context switches
-perf record -e context-switches -g -p $APISERVER_PID -o /tmp/cs.perf sleep 30
+/app/perf record -e context-switches -g -p $APISERVER_PID -o /results/cs.perf sleep 30
 ```
 
 ### Differential Profiling
 
 ```bash
 # Profile under no load
-perf record -F 99 -g -p $APISERVER_PID -o /tmp/idle.perf sleep 30
+/app/perf record -F 99 -g -p $APISERVER_PID -o /results/idle.perf sleep 30
 
 # Profile under high load
 # (start load generator first)
-perf record -F 99 -g -p $APISERVER_PID -o /tmp/load.perf sleep 30
+/app/perf record -F 99 -g -p $APISERVER_PID -o /results/load.perf sleep 30
 
 # Compare the two flame graphs
+# All files accessible on host at /tmp/profiling-results/
 ```
 
 ## Cleanup
@@ -296,7 +305,7 @@ perf record -F 99 -g -p $APISERVER_PID -o /tmp/load.perf sleep 30
 kubectl delete pod debug-profiler
 
 # Remove temporary files if needed
-rm -f /tmp/out.perf /tmp/flame.svg
+sudo rm -rf /tmp/profiling-results/
 ```
 
 ## Additional Resources

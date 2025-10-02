@@ -138,7 +138,7 @@ EOF
 
     # Configure containerd
     cat <<EOF | sudo tee /etc/containerd/config.toml
-version = 3
+version = 2
 
 [grpc]
   address = "/run/containerd/containerd.sock"

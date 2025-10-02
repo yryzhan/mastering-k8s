@@ -48,7 +48,7 @@ spec:
   volumes:
   - name: etcd-data
     hostPath:
-      path: /var/lib/etcd-static
+      path: /workspaces/mastering-k8s/etcd
       type: DirectoryOrCreate
   hostNetwork: true
   restartPolicy: Always

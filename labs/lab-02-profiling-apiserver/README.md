@@ -103,7 +103,7 @@ Inside the debug container:
 2. Collect performance samples:
 
    ```bash
-   perf record -F 99 -g -p <APISERVER_PID> -o /tmp/out sleep 30
+   /app/perf record -F 99 -g -p <APISERVER_PID> -o /results/out.perf sleep 30
    ```
 
 3. This will collect samples for 30 seconds
@@ -113,16 +113,17 @@ Inside the debug container:
 1. Process the perf data:
 
    ```bash
-   perf script -i /tmp/out | FlameGraph/stackcollapse-perf.pl | FlameGraph/flamegraph.pl > flame.svg
+   cd /results
+   /app/perf script -i out.perf | /app/FlameGraph/stackcollapse-perf.pl | /app/FlameGraph/flamegraph.pl > flame.svg
    ```
 
-2. Copy the flame.svg from the container:
+2. The flame.svg is accessible on the host at `/tmp/profiling-results/flame.svg`
+
+3. Copy to your repository:
 
    ```bash
-   kubectl cp debug-profiler:/tmp/flame.svg ./flame.svg
+   sudo cp /tmp/profiling-results/flame.svg ./labs/lab-02-profiling-apiserver/results/
    ```
-
-3. Save flame.svg in your repository
 
 ### Step 5: Analysis
 
