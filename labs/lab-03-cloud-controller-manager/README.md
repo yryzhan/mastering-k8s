@@ -2,6 +2,78 @@
 
 **Difficulty Level:** Expert
 
+## Lab Agenda & Task Checklist
+
+### ⏰ **Estimated Time:** 4-5 hours
+
+### 📋 **Task Overview:**
+> **Goal:** Deploy a Cloud Controller Manager (CCM) and integrate Kubernetes with a cloud provider to manage real cloud resources like load balancers
+
+#### **🎯 Tasks to Complete:**
+
+- [ ] **Step 1: Deploy Control Plane**
+  - [ ] Configure control plane with external cloud provider mode
+  - [ ] Set `--cloud-provider=external` in kube-apiserver
+  - [ ] Set `--cloud-provider=external` in kube-controller-manager
+  - [ ] Disable internal cloud provider logic
+
+- [ ] **Step 2: Configure Metadata Server**
+  - [ ] **🌐 ROUTE:** Configure 169.254.169.254/32 to localhost
+  - [ ] **🏗️ SETUP:** Deploy mock metadata server for your provider
+  - [ ] **✅ VERIFY:** Test metadata server response
+
+- [ ] **Step 3: Create Service Account**
+  - [ ] Create Kubernetes service account for CCM
+  - [ ] Configure cloud provider credentials (`cloud.conf`)
+  - [ ] Create service account credentials (`sa.json` for GCP or equivalent)
+  - [ ] **⚠️ SECURITY:** Ensure credentials are not committed to git
+
+- [ ] **Step 4: Deploy Mock Metadata Server**
+  - [ ] **Choose Provider:** AWS, GCP, Azure, or DigitalOcean
+  - [ ] **🐳 DEPLOY:** Run provider-specific metadata mock server
+  - [ ] **🧪 TEST:** Verify metadata endpoints respond correctly
+
+- [ ] **Step 5: Run Cloud Controller Manager**
+  - [ ] **📦 DEPLOY:** Deploy CCM for chosen provider
+  - [ ] **⚙️ CONFIGURE:** Set proper configuration and credentials
+  - [ ] **🔍 VERIFY:** Check CCM logs for successful startup
+  - [ ] **🩺 HEALTH:** Confirm CCM health checks pass
+
+- [ ] **Step 6: Register Node**
+  - [ ] **🏷️ LABEL:** Add cloud provider-specific labels to node
+  - [ ] **✅ VERIFY:** Node shows cloud provider information
+  - [ ] **📝 CHECK:** Confirm node annotations are present
+
+- [ ] **Step 7: Deploy Application**
+  - [ ] Create nginx deployment with 3 replicas
+  - [ ] **🚀 DEPLOY:** Apply deployment using `kubectl`
+  - [ ] **👀 MONITOR:** Watch deployment status
+
+- [ ] **Step 8: Create Load Balancer**
+  - [ ] **⚖️ CREATE:** Expose nginx as LoadBalancer service
+  - [ ] **⏳ WAIT:** Monitor external IP assignment
+  - [ ] **🌐 TEST:** Verify application is accessible via external IP
+  - [ ] **📊 VALIDATE:** Confirm cloud load balancer was created
+
+#### **🛡️ Critical Cleanup Tasks:**
+- [ ] **💸 COST CONTROL:** Delete LoadBalancer service
+- [ ] **🗑️ CLEANUP:** Delete deployment and pods
+- [ ] **☁️ VERIFY:** Confirm cloud resources are deleted
+- [ ] **💰 CHECK:** Verify no ongoing charges in cloud console
+
+#### **❓ Key Questions to Answer:**
+- How does the CCM interact with the Kubernetes API server?
+- What happens if the CCM crashes while creating a load balancer?
+- How does node lifecycle management work with CCM?
+- What are the advantages of external cloud provider mode?
+
+#### **⚠️ Important Warnings:**
+- **💰 COST ALERT:** This lab creates real cloud resources that incur costs!
+- **🔒 SECURITY:** Never commit cloud credentials to version control
+- **🧹 CLEANUP:** Always run cleanup script after completion
+
+---
+
 ## Overview
 
 In this lab, you will deploy a Cloud Controller Manager (CCM) for your chosen cloud provider. This advanced exercise demonstrates how Kubernetes integrates with cloud providers to manage resources like load balancers, node lifecycle, and cloud-specific features.

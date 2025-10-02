@@ -2,6 +2,56 @@
 
 **Difficulty Level:** Advanced
 
+## Lab Agenda & Task Checklist
+
+### ⏰ **Estimated Time:** 3-4 hours
+
+### 📋 **Task Overview:**
+> **Goal:** Profile the kube-apiserver using performance analysis tools and generate flame graphs to identify performance bottlenecks
+
+#### **🎯 Tasks to Complete:**
+
+- [ ] **Step 1: Deploy Control Plane**
+  - [ ] Ensure working Kubernetes control plane (Lab 01, kubeadm, kind, or minikube)
+  - [ ] Verify API server is running and accessible
+  - [ ] Test `kubectl` connectivity
+
+- [ ] **Step 2: Create Debug Container**
+  - [ ] Deploy privileged debug container with kubectl-flame image
+  - [ ] Verify container has host access and perf tools
+  - [ ] Test perf command availability
+
+- [ ] **Step 3: Profile kube-apiserver**
+  - [ ] **🔍 FIND:** Identify kube-apiserver PID on host
+  - [ ] **📊 COLLECT:** Run perf record for 30 seconds (`perf record -F 99 -g -p <PID>`)
+  - [ ] **⚡ GENERATE LOAD:** Run API calls during profiling
+  - [ ] Verify perf data was collected successfully
+
+- [ ] **Step 4: Generate Flame Graph**
+  - [ ] **🔄 PROCESS:** Convert perf data using stackcollapse-perf.pl
+  - [ ] **🔥 GENERATE:** Create flame.svg using flamegraph.pl
+  - [ ] **📤 EXPORT:** Copy flame.svg from container to local repository
+  - [ ] Save in `results/` directory
+
+- [ ] **Step 5: Analysis & Interpretation**
+  - [ ] **📈 ANALYZE:** Identify hottest code paths in flame graph
+  - [ ] **🎯 IDENTIFY:** Functions consuming most CPU time
+  - [ ] **🕵️ INVESTIGATE:** Look for unexpected performance patterns
+  - [ ] **📝 DOCUMENT:** Write analysis findings
+
+#### **🎯 Bonus Challenges:**
+- [ ] Compare flame graphs under different load patterns
+- [ ] Profile with and without authentication load
+- [ ] Identify optimization opportunities
+
+#### **❓ Key Questions to Answer:**
+- What percentage of CPU time is spent on authentication/authorization?
+- Which API calls are most expensive?
+- How does the flame graph change under load?
+- Can you identify optimization opportunities?
+
+---
+
 ## Overview
 
 In this lab, you will learn how to profile the kube-apiserver using performance analysis tools. You'll create flame graphs to visualize CPU usage and identify performance bottlenecks in the Kubernetes API server.
