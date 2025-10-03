@@ -26,7 +26,7 @@ spec:
     - --storage-backend=etcd3
     - --storage-media-type=application/json
     - --v=0
-    - --cloud-provider=external
+    -
     - --service-account-issuer=https://kubernetes.default.svc.cluster.local
     - --service-account-key-file=/etc/kubernetes/pki/sa.pub
     - --service-account-signing-key-file=/etc/kubernetes/pki/sa.key

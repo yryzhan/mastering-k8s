@@ -295,7 +295,7 @@ spec:
         command:
         - /bin/aws-cloud-controller-manager
         - --v=2
-        - --cloud-provider=aws
+        -
         - --cloud-config=/etc/cloud/cloud.conf
         - --configure-cloud-routes=true
         - --use-service-account-credentials=true
