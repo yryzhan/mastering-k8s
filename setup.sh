@@ -263,25 +263,36 @@ start() {
             --storage-backend=etcd3 \
             --storage-media-type=application/json \
             --v=0 \
-            \
             --service-account-issuer=https://kubernetes.default.svc.cluster.local \
             --service-account-key-file=/tmp/sa.pub \
             --service-account-signing-key-file=/tmp/sa.key &
     fi
 
+    # Wait for API server to be ready
+    echo "Waiting for API server to be ready..."
+    for i in {1..30}; do
+        if sudo kubebuilder/bin/kubectl get --raw='/readyz' 2>/dev/null; then
+            echo "API server is ready"
+            break
+        fi
+        sleep 1
+    done
+
+    # Start containerd BEFORE kubelet (kubelet needs container runtime)
     if ! is_running "containerd"; then
         echo "Starting containerd..."
         export PATH=$PATH:/opt/cni/bin:kubebuilder/bin
         sudo PATH=$PATH:/opt/cni/bin:/usr/sbin /opt/cni/bin/containerd -c /etc/containerd/config.toml &
-    fi
-
-    if ! is_running "kube-scheduler"; then
-        echo "Starting kube-scheduler..."
-        sudo kubebuilder/bin/kube-scheduler \
-            --kubeconfig=/root/.kube/config \
-            --leader-elect=false \
-            --v=2 \
-            --bind-address=0.0.0.0 &
+        
+        # Wait for containerd socket to be ready
+        echo "Waiting for containerd to be ready..."
+        for i in {1..30}; do
+            if [ -S /run/containerd/containerd.sock ]; then
+                echo "Containerd is ready"
+                break
+            fi
+            sleep 1
+        done
     fi
 
     # Set up kubelet kubeconfig
@@ -293,7 +304,7 @@ start() {
     sudo kubebuilder/bin/kubectl create sa default 2>/dev/null || true
     sudo kubebuilder/bin/kubectl create configmap kube-root-ca.crt --from-file=ca.crt=/tmp/ca.crt -n default 2>/dev/null || true
 
-
+    # Start kubelet (container runtime is now ready)
     if ! is_running "kubelet"; then
         echo "Starting kubelet..."
         sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kubelet \
@@ -306,7 +317,6 @@ start() {
             --hostname-override=$(hostname) \
             --pod-infra-container-image=registry.k8s.io/pause:3.10 \
             --node-ip=$HOST_IP \
-            \
             --cgroup-driver=cgroupfs \
             --max-pods=4  \
             --v=1 &
@@ -326,12 +336,22 @@ start() {
     export NODE_NAME=$(hostname)
     sudo kubebuilder/bin/kubectl label node "$NODE_NAME" node-role.kubernetes.io/master="" --overwrite || true
 
+    # Start kube-scheduler
+    if ! is_running "kube-scheduler"; then
+        echo "Starting kube-scheduler..."
+        sudo kubebuilder/bin/kube-scheduler \
+            --kubeconfig=/root/.kube/config \
+            --leader-elect=false \
+            --v=2 \
+            --bind-address=0.0.0.0 &
+    fi
+
+    # Start kube-controller-manager
     if ! is_running "kube-controller-manager"; then
         echo "Starting kube-controller-manager..."
         sudo PATH=$PATH:/opt/cni/bin:/usr/sbin kubebuilder/bin/kube-controller-manager \
             --kubeconfig=/var/lib/kubelet/kubeconfig \
             --leader-elect=false \
-            \
             --service-cluster-ip-range=10.0.0.0/24 \
             --cluster-name=kubernetes \
             --root-ca-file=/var/lib/kubelet/ca.crt \
@@ -341,7 +361,7 @@ start() {
     fi
 
     echo "Waiting for components to be ready..."
-    sleep 15
+    sleep 10
 
     echo "Verifying setup..."
     sudo kubebuilder/bin/kubectl get nodes

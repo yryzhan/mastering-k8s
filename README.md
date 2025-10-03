@@ -333,11 +333,26 @@ sudo kubebuilder/bin/kubectl get componentstatuses
 # Check API server health
 sudo kubebuilder/bin/kubectl get --raw='/readyz?verbose'
 
+# Create nginx deployment
+sudo  kubebuilder/bin/kubectl create deploy demo --image nginx
+
 # Create nginx deployment with toleration and node selector
 sudo kubebuilder/bin/kubectl apply -f manifests/nginx-demo-deployment.yaml
 
-# Check all resources
+# list everything in all namespaces
 sudo kubebuilder/bin/kubectl get all -A
+
+# list pods in default namespace
+sudo kubebuilder/bin/kubectl get pods
+
+# show pods for the demo app with details
+sudo kubebuilder/bin/kubectl get pods -n default -l app=demo -o wide
+
+# describe a pod (see events, scheduling, container info)
+sudo kubebuilder/bin/kubectl describe pod <pod-name>
+
+# follow pod events in real time
+sudo kubebuilder/bin/kubectl get events -A --sort-by=.lastTimestamp | tail -n 50
 ```
 
 ## Troubleshooting
